@@ -1,0 +1,180 @@
+import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:http/http.dart' as http;
+import 'package:parentsapp/models/driverlocation.dart';
+import 'dart:convert';
+import 'package:parentsapp/models/drivers_model.dart';
+import 'package:parentsapp/models/mykids.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'Map.dart';
+
+// ignore: camel_case_types
+class list_drivers extends StatefulWidget {
+  @override
+  State<StatefulWidget> createState() {
+    // TODO: implement createState
+    return _list_drivers();
+  }
+}
+
+// ignore: camel_case_types
+class _list_drivers extends State<list_drivers> {
+  Future<List<MyKids>> _myString;
+
+  String _id;
+  SharedPreferences logindata;
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    initial();
+    _myString = _getUsers();
+  }
+  void initial() async {
+    logindata = await SharedPreferences.getInstance();
+    setState(() {
+      _id = logindata.getString('id');
+    });
+  }
+
+
+  List<MyKids> users = [];
+
+  List<DriverLocation> location = [];
+  var loading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    var heightScreen = MediaQuery.of(context).size.height;
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          centerTitle: true,
+          backgroundColor: Colors.indigo,
+          title: Text("All My Kids"),
+        ),
+        body: Container(
+          width: MediaQuery.of(context).size.width,
+          height: MediaQuery.of(context).size.height,
+          decoration: BoxDecoration(
+              image: DecorationImage(
+                  image: AssetImage('images/listdriver.PNG'),
+                  fit: BoxFit.cover)),
+          child: FutureBuilder(
+              future: _myString,
+              builder: (BuildContext context, AsyncSnapshot asyncSnapshot) {
+                if (asyncSnapshot.data == null) {
+                  return Center(
+                      child: CircularProgressIndicator());
+                } else {
+                  return // Container(child: Center(child: Text("L ${users}",style: TextStyle(fontSize: 30,fontWeight: FontWeight.bold,backgroundColor: Colors.white),)));
+
+                      ListView.builder(
+                          itemCount: users.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            return Card(
+                              color: Colors.white70,
+                              child: ListTile(
+                                title: Text("${asyncSnapshot.data[index].kid_name} "),
+                                leading: CircleAvatar(
+                                    backgroundImage: NetworkImage(asyncSnapshot.data[index].kid_image,),radius: 30,),
+                                subtitle: Text(
+                                    "he is with perant id = ${asyncSnapshot.data[index].par_id}"),
+                                onTap: () {
+                               //   _getLocation(asyncSnapshot.data[index].driver_id.toString());
+                                },
+                              ),
+                            );
+                          });
+                }
+              }),
+        ),
+      ),
+    );
+  }
+
+  Future<List<MyKids>> _getUsers() async {
+    setState(() {
+      loading = true;
+    });
+    var url = "My API";
+    String body = '{MyBody}';
+    Map<String, String> headers = {"Content-type": "application/json"};
+    var data = await http.post(url, headers: headers, body: body);
+    var jsonData = json.decode(data.body);
+    users.add(MyKids.fromJson(jsonData));
+    print("users1 $jsonData");
+
+    return users;
+
+  }
+
+  void Onclick(BuildContext context) {
+    AlertDialog alertDialog = AlertDialog(
+        title: Text("Error",
+            style: TextStyle(
+              fontSize: 20,
+            )),
+        content: Text(
+          "Failed to Find Driver Location",
+          style: TextStyle(
+            fontSize: 25,
+          ),
+        ));
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return alertDialog;
+        });
+  }
+}
+
+class MyKids {
+  int kidId;
+  int parId;
+  String kidName;
+  String kidImage;
+  Driver driver;
+
+  MyKids({this.kidId, this.parId, this.kidName, this.kidImage, this.driver});
+
+  MyKids.fromJson(Map<String, dynamic> json) {
+    kidId = json['kid_id'];
+    parId = json['par_id'];
+    kidName = json['kid_name'];
+    kidImage = json['kid_image'];
+    driver =
+    json['driver'] != null ? new Driver.fromJson(json['driver']) : null;
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['kid_id'] = this.kidId;
+    data['par_id'] = this.parId;
+    data['kid_name'] = this.kidName;
+    data['kid_image'] = this.kidImage;
+    if (this.driver != null) {
+      data['driver'] = this.driver.toJson();
+    }
+    return data;
+  }
+}
+
+class Driver {
+  int driverId;
+  String name;
+
+  Driver({this.driverId, this.name});
+
+  Driver.fromJson(Map<String, dynamic> json) {
+    driverId = json['driver_id'];
+    name = json['name'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['driver_id'] = this.driverId;
+    data['name'] = this.name;
+    return data;
+  }
+}
