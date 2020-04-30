@@ -1,0 +1,215 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:location/location.dart';
+
+class update_location_interval extends StatefulWidget {
+  @override
+  State<StatefulWidget> createState() {
+    // TODO: implement createState
+    return _update_location_interval();
+  }
+}
+
+class _update_location_interval extends State<update_location_interval> {
+  String id_dreiver;
+  SharedPreferences logindata;
+  bool sending ;
+
+  Timer timer;
+
+  @override
+  void initState() {
+    super.initState();
+    initial();
+  }
+
+  void initial() async {
+    logindata = await SharedPreferences.getInstance();
+    setState(() {
+      id_dreiver = logindata.getString('id');
+      sending = logindata.getBool('Issending');
+    });
+
+  }
+
+  Location location = new Location();
+  dynamic position = LocationData;
+
+  @override
+  Widget build(BuildContext context) {
+    var widthMal = MediaQuery.of(context).size.width / 100;
+    var heightMal = MediaQuery.of(context).size.height / 100;
+
+    var heightScreen = MediaQuery.of(context).size.height;
+    // TODO: implement build
+    return Scaffold(
+      body: Container(
+        width: MediaQuery.of(context).size.width,
+        height: MediaQuery.of(context).size.height,
+        decoration: BoxDecoration(
+            image: DecorationImage(
+                image: AssetImage('images/homepage.jpg'), fit: BoxFit.cover)),
+        child: Container(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              SizedBox(
+                height: heightScreen * 0.08,
+              ),
+              Padding(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      "Location Page",
+                      style: TextStyle(
+                          color: Colors.white, fontSize: heightMal * 5.2),
+                    ),
+                    SizedBox(
+                      height: heightScreen * 0.06,
+                    ),
+                    Text(
+                      "Note.. ",
+                      style: TextStyle(
+                          color: Colors.white, fontSize: heightMal * 4.3),
+                    ),
+                    SizedBox(
+                      height: heightScreen * 0.04,
+                    ),
+                    SizedBox(height: heightScreen * 0.07),
+                    Center(
+                      child: Text(
+                        "$mohh",
+                        style: TextStyle(
+                            color: Colors.white, fontSize: heightMal * 3.5),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: EdgeInsets.all(30),
+                    child: Column(
+                      children: <Widget>[
+                        SizedBox(
+                          height: heightScreen * 0.02,
+                        ),
+                        sending == true
+                            ? GestureDetector(
+                                child: Container(
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.8,
+                                  height: heightScreen * 0.07,
+                                  margin: EdgeInsets.symmetric(horizontal: 20),
+                                  decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(50),
+                                      color: Colors.red),
+                                  child: Center(
+                                    child: Text(
+                                      "End Send Location",
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: heightMal * 2.6),
+                                    ),
+                                  ),
+                                ),
+                                onTap: () async {
+                                  location_status("End Send Location");
+                                  timer.cancel();
+                                  setState(() {
+                                    logindata.setBool('Issending', false);
+                                    sending = logindata.getBool('Issending');
+                                  });
+                                },
+                              )
+                            : GestureDetector(
+                                child: Container(
+                                  width:
+                                      MediaQuery.of(context).size.width * 0.8,
+                                  height: heightScreen * 0.07,
+                                  margin: EdgeInsets.symmetric(horizontal: 20),
+                                  decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(50),
+                                      color: Colors.indigo),
+                                  child: Center(
+                                    child: Text(
+                                      "Start Send Location",
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: heightMal * 2.6),
+                                    ),
+                                  ),
+                                ),
+                                onTap: () async {
+                                  timer = Timer.periodic(Duration(seconds: 30), (Timer t) => getLocation());
+                                  location_status("Strart Sned Location");
+                                  getLocation();
+                                  setState(() {
+                                    logindata.setBool('Issending', true);
+                                    sending = logindata.getBool('Issending');
+                                  });
+                                },
+                              ),
+                        SizedBox(
+                          height: heightScreen * 0.04,
+                        ),
+                        GestureDetector(
+                          child: Container(
+                            width: MediaQuery.of(context).size.width * 0.8,
+                            height: heightScreen * 0.07,
+                            margin: EdgeInsets.symmetric(horizontal: 50),
+                            decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(50),
+                                color: Colors.indigo),
+                            child: Center(
+                              child: Text(
+                                "Move app to background",
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: heightMal * 2.6),
+                              ),
+                            ),
+                          ),
+                          onTap: () {},
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void getLocation() async {
+
+    var driver_id = id_dreiver.substring(7);
+    print("driver_id $driver_id");
+    bool isLocationEnabled = await Location().requestService();
+    if (isLocationEnabled == false) {
+    } else {
+      bool _permission = await location.requestPermission();
+
+      if (_permission) {
+        position = await location.getLocation();
+        var url =
+            "My API";
+        Map<String, String> headers = {"Content-type": "application/json"};
+        String body = '{"driver_id":$driver_id,"Latitude":"${position.latitude}","longitude":"${position.longitude}"}';
+         var response = await http.post(url, headers: headers, body: body);
+
+
+      }
+    }
+  }
+}
